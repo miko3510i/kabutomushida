@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>カブトムシ打: プログラミング用語版</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      --lane-height: 240px;
+      --beetle-size: 64px;
+      --primary: #f77f00;
+      --secondary: #43d6b0;
+      --danger: #ff3366;
+      --bg: #101215;
+      --text: #f5f7fa;
+    }
+
+    body {
+      margin: 0;
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(160deg, #090c11, #202438);
+      color: var(--text);
+    }
+
+    .game {
+      width: min(960px, 95vw);
+      padding: 28px;
+      border-radius: 20px;
+      background: rgba(14, 16, 24, 0.95);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+      display: grid;
+      gap: 26px;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+    }
+
+    header p {
+      margin: 4px 0 0;
+      opacity: 0.8;
+    }
+
+    .stats {
+      display: flex;
+      gap: 18px;
+      font-size: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 90px;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.74;
+    }
+
+    .stat-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .controls label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95rem;
+      opacity: 0.85;
+    }
+
+    .controls select {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(67, 214, 176, 0.35);
+      background: rgba(12, 14, 20, 0.8);
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    .controls-note {
+      font-size: 0.85rem;
+      opacity: 0.65;
+    }
+
+    button {
+      background: var(--secondary);
+      color: #041a16;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    button:not(:disabled):hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 26px rgba(67, 214, 176, 0.35);
+    }
+
+    .lane-wrapper {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      background: rgba(6, 9, 15, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .lane-label {
+      position: absolute;
+      top: 12px;
+      left: 18px;
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      opacity: 0.65;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    .beetle-lane {
+      position: relative;
+      height: var(--lane-height);
+      background: radial-gradient(circle at top, rgba(68, 214, 176, 0.18), transparent 55%),
+        repeating-linear-gradient(
+          120deg,
+          rgba(68, 214, 176, 0.08),
+          rgba(68, 214, 176, 0.08) 18px,
+          rgba(255, 255, 255, 0.02) 18px,
+          rgba(255, 255, 255, 0.02) 36px
+        );
+    }
+
+    .beetle {
+      position: absolute;
+      left: 0;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      min-width: max(200px, calc(var(--beetle-size) * 2.4));
+      padding: 14px 24px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.38);
+      color: #101215;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-align: center;
+      animation: scuttle linear var(--duration) forwards;
+      pointer-events: none;
+      white-space: normal;
+    }
+
+    .beetle img {
+      width: var(--beetle-size);
+      height: auto;
+      display: block;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.25));
+    }
+
+    .beetle .word-label {
+      font-size: clamp(1rem, 2.6vw, 1.25rem);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .beetle .word-meaning {
+      font-size: clamp(0.7rem, 2vw, 0.85rem);
+      line-height: 1.35;
+      opacity: 0.85;
+    }
+
+    @keyframes scuttle {
+      from {
+        transform: translateX(calc(100% + 40px));
+      }
+      to {
+        transform: translateX(calc(-100% - 40px));
+      }
+    }
+
+    .input-area {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .feedback {
+      min-height: 24px;
+      font-size: 0.95rem;
+      color: var(--secondary);
+    }
+
+    input[type="text"] {
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(67, 214, 176, 0.3);
+      background: rgba(12, 14, 20, 0.86);
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    input[type="text"]:focus {
+      outline: 2px solid var(--secondary);
+      outline-offset: 2px;
+    }
+
+    .gameover {
+      display: none;
+      border-radius: 16px;
+      padding: 18px;
+      background: rgba(255, 51, 102, 0.12);
+      border: 1px solid rgba(255, 51, 102, 0.45);
+      color: var(--danger);
+      font-weight: 600;
+    }
+
+    .gameover.active {
+      display: block;
+    }
+
+    @media (max-width: 600px) {
+      :root {
+        --lane-height: 200px;
+        --beetle-size: 56px;
+      }
+
+      .game {
+        padding: 20px;
+        gap: 20px;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="game" role="application" aria-label="カブトムシ打 プログラミング用語タイピングゲーム">
+    <header>
+      <div>
+        <h1>カブトムシ打: プログラミング用語版</h1>
+        <p>カブトムシが流れている間に用語をタイプしてスコアを伸ばそう！</p>
+      </div>
+      <button id="startButton">ゲーム開始</button>
+    </header>
+
+    <section class="stats" aria-live="polite">
+      <div class="stat">
+        <span class="stat-label">スコア</span>
+        <span id="score" class="stat-value">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">残り時間</span>
+        <span id="time" class="stat-value">60</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">ミス</span>
+        <span id="misses" class="stat-value">0 / 5</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">連続成功</span>
+        <span id="combo" class="stat-value">0</span>
+      </div>
+    </section>
+
+    <div class="controls">
+      <label for="spawnDelay">カブトムシの滞在時間
+        <select id="spawnDelay">
+          <option value="3000">3秒</option>
+          <option value="5000">5秒</option>
+          <option value="8000">8秒</option>
+          <option value="10000">10秒</option>
+        </select>
+      </label>
+      <span class="controls-note">※経過時間か捕獲のどちらかで次が流れます</span>
+    </div>
+
+    <div class="lane-wrapper">
+      <span class="lane-label">Forest</span>
+      <div id="lane" class="beetle-lane"></div>
+    </div>
+
+    <div class="input-area">
+      <label for="typeInput">表示された用語をスペース無しで正確にタイプし、Enterで確定します。</label>
+      <input id="typeInput" type="text" inputmode="text" autocomplete="off" disabled />
+      <div id="feedback" class="feedback" aria-live="polite"></div>
+    </div>
+
+    <div id="gameover" class="gameover" role="alert"></div>
+  </div>
+
+  <script>
+    const programmingWords = [
+      "algorithm",
+      "binary",
+      "callback",
+      "commit",
+      "compiler",
+      "container",
+      "database",
+      "debug",
+      "declarative",
+      "dependency",
+      "endpoints",
+      "enum",
+      "framework",
+      "function",
+      "garbagecollector",
+      "hashmap",
+      "immutable",
+      "inheritance",
+      "interface",
+      "iterator",
+      "javascript",
+      "lambda",
+      "macro",
+      "middleware",
+      "namespace",
+      "optimization",
+      "polymorphism",
+      "protocol",
+      "recursion",
+      "refactor",
+      "repository",
+      "restapi",
+      "sandbox",
+      "serializer",
+      "singleton",
+      "stacktrace",
+      "syntax",
+      "thread",
+      "transaction",
+      "typescript",
+      "virtualmachine",
+      "websocket"
+    ];
+
+    const beetleImages = [
+      { src: "assets/kabutomushi.png", alt: "茶色のカブトムシ" },
+      { src: "assets/kabutomushi_extra1.png", alt: "黄金のカブトムシ" },
+      { src: "assets/kabutomushi_extra2.png", alt: "赤いカブトムシ" },
+      { src: "assets/kabutomushi_extra3.png", alt: "青いカブトムシ" },
+      { src: "assets/kabutomushi_extra4.png", alt: "紫のカブトムシ" },
+      { src: "assets/kabutomushi_extra5.png", alt: "緑のカブトムシ" },
+      { src: "assets/kabutomushi_extra6.png", alt: "シルバーのカブトムシ" }
+    ];
+
+    const wordMeanings = {
+      algorithm: "アルゴリズム: 問題を解くための処理手順や計算方法。",
+      binary: "バイナリ: 0と1の2進数でデータを表す形式。",
+      callback: "コールバック: 別の処理が完了したときに呼ばれる関数。",
+      commit: "コミット: 変更内容をバージョン管理に確定して記録する操作。",
+      compiler: "コンパイラ: ソースコードを機械語などに変換するプログラム。",
+      container: "コンテナ: 実行環境をまとめてパッケージ化して動かす仕組み。",
+      database: "データベース: データを整理して蓄え検索できるシステム。",
+      debug: "デバッグ: バグを見つけて修正する作業。",
+      declarative: "宣言的: 処理手順ではなく結果を記述するスタイル。",
+      dependency: "依存関係: あるモジュールが別のモジュールに頼るつながり。",
+      endpoints: "エンドポイント: APIと通信するときの接続先URL。",
+      enum: "列挙型: 有効な値を限定した型。",
+      framework: "フレームワーク: アプリ開発の土台となる共通機能の集合。",
+      function: "関数: 入力に応じて結果を返す独立した処理のかたまり。",
+      garbagecollector: "ガーベジコレクタ: 使わなくなったメモリを自動で解放する仕組み。",
+      hashmap: "ハッシュマップ: キーと値を高速に対応付けるデータ構造。",
+      immutable: "イミュータブル: 一度作ると値を変更できない性質。",
+      inheritance: "継承: あるクラスの性質を引き継いで新しいクラスを作る仕組み。",
+      interface: "インターフェース: 外部に公開する操作方法や契約。",
+      iterator: "イテレータ: 集合の要素を順番に取り出す仕組み。",
+      javascript: "JavaScript: ブラウザなどで動く代表的なプログラミング言語。",
+      lambda: "ラムダ: 名前を付けずに書ける無名関数。",
+      macro: "マクロ: 繰り返しの処理をまとめて自動化する仕組み。",
+      middleware: "ミドルウェア: OSとアプリの間で共通機能を提供するソフトウェア。",
+      namespace: "名前空間: 同じ名前の衝突を避けるための領域分け。",
+      optimization: "最適化: プログラムを速くしたり資源消費を抑えたりする改善。",
+      polymorphism: "ポリモーフィズム: 同じ操作で型ごとに異なる振る舞いをさせる仕組み。",
+      protocol: "プロトコル: 通信で守るべき手順やルール。",
+      recursion: "再帰: 自分自身を呼び出しながら問題を解く手法。",
+      refactor: "リファクタ: 挙動を変えずにコードの構造を整えること。",
+      repository: "リポジトリ: コードや履歴を保存するリモート・ローカルの保管場所。",
+      restapi: "REST API: HTTPの規約に従ってデータをやり取りするWeb API。",
+      sandbox: "サンドボックス: 本番に影響を与えない隔離された実行環境。",
+      serializer: "シリアライザ: データを保存や送信しやすい形式に変換する仕組み。",
+      singleton: "シングルトン: アプリ内でインスタンスが1つだけ存在する設計。",
+      stacktrace: "スタックトレース: エラーが起きるまでの関数呼び出し履歴。",
+      syntax: "構文: 言語で正しい文を書くためのきまり。",
+      thread: "スレッド: プログラム内で並行して動く処理の流れ。",
+      transaction: "トランザクション: 途中で失敗したら元に戻すことを前提にした一連の処理。",
+      typescript: "TypeScript: 型を付けて書けるJavaScriptの拡張言語。",
+      virtualmachine: "仮想マシン: ソフトウェアで再現した仮想的なコンピュータ。",
+      websocket: "WebSocket: サーバーとクライアントが双方向に通信し続ける仕組み。"
+    };
+
+    const lane = document.getElementById("lane");
+    const startButton = document.getElementById("startButton");
+    const scoreDisplay = document.getElementById("score");
+    const timeDisplay = document.getElementById("time");
+    const missesDisplay = document.getElementById("misses");
+    const comboDisplay = document.getElementById("combo");
+    const typeInput = document.getElementById("typeInput");
+    const feedback = document.getElementById("feedback");
+    const gameover = document.getElementById("gameover");
+    const delaySelect = document.getElementById("spawnDelay");
+    const missingMeaningText = "辞書にない用語です。";
+
+    let timeLeft = 60;
+    let score = 0;
+    let misses = 0;
+    let combo = 0;
+    let timerId = null;
+    const activeBeetles = new Map();
+    let beetleCounter = 0;
+    let playing = false;
+    let nextTrack = 0;
+    let currentBeetleId = null;
+    let beetleTimeoutId = null;
+    let nextSpawnId = null;
+    let spawnDelay = Number(delaySelect.value);
+
+    const MAX_MISS = 5;
+    const TRACKS = 1;
+
+    function resetGameState() {
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+      if (nextSpawnId) {
+        clearTimeout(nextSpawnId);
+        nextSpawnId = null;
+      }
+      if (beetleTimeoutId) {
+        clearTimeout(beetleTimeoutId);
+        beetleTimeoutId = null;
+      }
+      currentBeetleId = null;
+      timeLeft = 60;
+      score = 0;
+      misses = 0;
+      combo = 0;
+      nextTrack = 0;
+      comboDisplay.textContent = combo;
+      scoreDisplay.textContent = score;
+      timeDisplay.textContent = timeLeft;
+      missesDisplay.textContent = `${misses} / ${MAX_MISS}`;
+      feedback.textContent = "";
+      gameover.classList.remove("active");
+      gameover.textContent = "";
+      typeInput.value = "";
+      lane.innerHTML = "";
+      activeBeetles.clear();
+      beetleCounter = 0;
+    }
+
+    function startGame() {
+      if (playing) return;
+      playing = true;
+      resetGameState();
+      startButton.disabled = true;
+      typeInput.disabled = false;
+      typeInput.focus();
+      spawnDelay = Number(delaySelect.value);
+      scheduleNextSpawn(0);
+      timerId = setInterval(() => {
+        timeLeft -= 1;
+        timeDisplay.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          endGame("時間切れ！お疲れさまでした。");
+        }
+      }, 1000);
+    }
+
+    function endGame(message) {
+      playing = false;
+      startButton.disabled = false;
+      typeInput.disabled = true;
+      clearInterval(timerId);
+      timerId = null;
+      clearTimeout(nextSpawnId);
+      nextSpawnId = null;
+      clearTimeout(beetleTimeoutId);
+      beetleTimeoutId = null;
+      activeBeetles.forEach(({ element }) => {
+        if (element.parentNode === lane) {
+          lane.removeChild(element);
+        }
+      });
+      activeBeetles.clear();
+      currentBeetleId = null;
+      feedback.textContent = "";
+      gameover.textContent = `${message} 最終スコア: ${score}`;
+      gameover.classList.add("active");
+    }
+
+    function randomWord() {
+      const index = Math.floor(Math.random() * programmingWords.length);
+      return programmingWords[index];
+    }
+
+    function randomBeetleAsset() {
+      const index = Math.floor(Math.random() * beetleImages.length);
+      return beetleImages[index];
+    }
+
+    function trackOffset(trackIndex, beetleElement) {
+      const laneHeight = lane.clientHeight;
+      const slotHeight = laneHeight / TRACKS;
+      const beetleHeight = beetleElement.getBoundingClientRect().height || parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--beetle-size")) || 72;
+      return slotHeight * (trackIndex + 0.5) - beetleHeight / 2;
+    }
+
+    function scheduleNextSpawn(delay = 0) {
+      if (!playing) return;
+      if (nextSpawnId) {
+        clearTimeout(nextSpawnId);
+      }
+      nextSpawnId = setTimeout(() => {
+        nextSpawnId = null;
+        if (!playing) return;
+        if (currentBeetleId) return;
+        spawnBeetle();
+      }, delay);
+    }
+
+    function armBeetleTimeout(beetleId, delay = spawnDelay) {
+      if (beetleTimeoutId) {
+        clearTimeout(beetleTimeoutId);
+        beetleTimeoutId = null;
+      }
+      if (!playing) return;
+      const entry = activeBeetles.get(beetleId);
+      if (!entry) return;
+      entry.element.style.setProperty("--duration", `${delay}ms`);
+      beetleTimeoutId = setTimeout(() => {
+        if (!playing) return;
+        const currentEntry = activeBeetles.get(beetleId);
+        if (!currentEntry) return;
+        if (currentEntry.element.parentNode === lane) {
+          lane.removeChild(currentEntry.element);
+        }
+        activeBeetles.delete(beetleId);
+        currentBeetleId = null;
+        beetleTimeoutId = null;
+        registerMiss();
+        scheduleNextSpawn(0);
+      }, delay);
+    }
+
+    function spawnBeetle() {
+      if (!playing) return;
+      if (currentBeetleId) return;
+
+      const word = randomWord();
+      const beetleId = `beetle-${beetleCounter++}`;
+      const beetle = document.createElement("div");
+      beetle.className = "beetle";
+      beetle.dataset.word = word;
+      beetle.dataset.id = beetleId;
+      beetle.setAttribute("aria-label", `${word} のカブトムシ`);
+      beetle.style.setProperty("--duration", `${spawnDelay}ms`);
+      const meaning = wordMeanings[word] || missingMeaningText;
+      const { src, alt } = randomBeetleAsset();
+      beetle.innerHTML = `<img src="${src}" alt="${alt}"><span class="word-label">${word}</span><span class="word-meaning">${meaning}</span>`;
+
+      const trackIndex = nextTrack;
+      nextTrack = (nextTrack + 1) % TRACKS;
+
+      beetle.addEventListener("animationend", () => {
+        if (!activeBeetles.has(beetleId)) return;
+        lane.removeChild(beetle);
+        activeBeetles.delete(beetleId);
+        if (currentBeetleId === beetleId) {
+          currentBeetleId = null;
+          if (beetleTimeoutId) {
+            clearTimeout(beetleTimeoutId);
+            beetleTimeoutId = null;
+          }
+        }
+        registerMiss();
+        scheduleNextSpawn(0);
+      });
+
+      lane.appendChild(beetle);
+      const offset = trackOffset(trackIndex, beetle);
+      beetle.style.top = `${offset}px`;
+      activeBeetles.set(beetleId, { word, element: beetle });
+      currentBeetleId = beetleId;
+
+      armBeetleTimeout(beetleId);
+    }
+
+    function registerMiss() {
+      if (!playing) return;
+      if (beetleTimeoutId) {
+        clearTimeout(beetleTimeoutId);
+        beetleTimeoutId = null;
+      }
+      currentBeetleId = null;
+      combo = 0;
+      comboDisplay.textContent = combo;
+      misses += 1;
+      missesDisplay.textContent = `${misses} / ${MAX_MISS}`;
+      feedback.textContent = "飛んでいってしまった…！";
+      if (misses >= MAX_MISS) {
+        endGame("虫かごが空っぽになってしまった…");
+      }
+    }
+
+    function handleTyping(event) {
+      if (event.key !== "Enter" || !playing) return;
+      const value = typeInput.value.trim();
+      if (!value) return;
+
+      const beetleEntry = Array.from(activeBeetles.values()).find((b) => b.word === value);
+      if (!beetleEntry) {
+        feedback.textContent = "その用語のカブトムシは見当たりません";
+        combo = 0;
+        comboDisplay.textContent = combo;
+        typeInput.value = "";
+        return;
+      }
+
+      lane.removeChild(beetleEntry.element);
+      const beetleId = beetleEntry.element.dataset.id;
+      activeBeetles.delete(beetleId);
+      typeInput.value = "";
+      if (beetleTimeoutId) {
+        clearTimeout(beetleTimeoutId);
+        beetleTimeoutId = null;
+      }
+      currentBeetleId = null;
+      scheduleNextSpawn(0);
+
+      combo += 1;
+      comboDisplay.textContent = combo;
+      const comboBonus = combo >= 10 ? 10 : combo >= 5 ? 5 : combo >= 3 ? 2 : 0;
+      const baseScore = Math.min(30, 5 + beetleEntry.word.length * 1.8);
+      const total = Math.floor(baseScore + comboBonus);
+      score += total;
+      scoreDisplay.textContent = score;
+      feedback.textContent = `「${beetleEntry.word}」捕まえた！ +${total} pt`;
+    }
+
+    delaySelect.addEventListener("change", () => {
+      spawnDelay = Number(delaySelect.value);
+      if (playing && currentBeetleId && activeBeetles.has(currentBeetleId)) {
+        const currentEntry = activeBeetles.get(currentBeetleId);
+        if (currentEntry) {
+          currentEntry.element.style.setProperty("--duration", `${spawnDelay}ms`);
+        }
+        armBeetleTimeout(currentBeetleId);
+      }
+    });
+
+    startButton.addEventListener("click", startGame);
+    typeInput.addEventListener("keydown", handleTyping);
+  </script>
+</body>
+</html>
