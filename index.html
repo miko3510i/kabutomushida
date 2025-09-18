@@ -11,10 +11,10 @@
       --lane-height: 240px;
       --beetle-size: 64px;
       --primary: #f77f00;
-      --secondary: #43d6b0;
+      --secondary: #ffd166;
       --danger: #ff3366;
-      --bg: #101215;
-      --text: #f5f7fa;
+      --bg: #0f2218;
+      --text: #f2fff6;
     }
 
     body {
@@ -23,16 +23,24 @@
       min-height: 100vh;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(160deg, #090c11, #202438);
-      color: var(--text);
+      background-color: #2e7d3b;
+      background-image:
+        radial-gradient(circle at 18% 22%, rgba(144, 214, 98, 0.45) 0, rgba(144, 214, 98, 0) 46%),
+        radial-gradient(circle at 78% 28%, rgba(41, 89, 45, 0.38) 0, rgba(41, 89, 45, 0) 54%),
+        repeating-linear-gradient(115deg, rgba(90, 176, 87, 0.4) 0, rgba(90, 176, 87, 0.4) 40px, rgba(54, 120, 63, 0.4) 40px, rgba(54, 120, 63, 0.4) 80px),
+        linear-gradient(140deg, #49b44f 0%, #2f7f39 55%, #1e5c2b 100%);
+      background-size: auto, auto, 320px 320px, cover;
+      background-blend-mode: screen, multiply, overlay, normal;
+      color: #14321b;
     }
 
     .game {
       width: min(960px, 95vw);
       padding: 28px;
       border-radius: 20px;
-      background: rgba(14, 16, 24, 0.95);
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+      background: rgba(11, 28, 20, 0.94);
+      color: var(--text);
+      box-shadow: 0 24px 60px rgba(9, 26, 17, 0.55);
       display: grid;
       gap: 26px;
     }
@@ -83,9 +91,16 @@
 
     .controls {
       display: flex;
-      gap: 12px;
-      align-items: center;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .control-row {
+      display: flex;
       flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
     }
 
     .controls label {
@@ -93,7 +108,11 @@
       align-items: center;
       gap: 8px;
       font-size: 0.95rem;
-      opacity: 0.85;
+      color: rgba(242, 255, 246, 0.9);
+    }
+
+    .control-row button {
+      flex: none;
     }
 
     .controls select {
@@ -107,12 +126,12 @@
 
     .controls-note {
       font-size: 0.85rem;
-      opacity: 0.65;
+      color: rgba(242, 255, 246, 0.7);
     }
 
     button {
       background: var(--secondary);
-      color: #041a16;
+      color: #3b2500;
       border: none;
       padding: 12px 24px;
       font-size: 1rem;
@@ -132,12 +151,17 @@
       box-shadow: 0 10px 26px rgba(67, 214, 176, 0.35);
     }
 
+    #startButton {
+      width: auto;
+    }
+
     .lane-wrapper {
       position: relative;
       border-radius: 20px;
       overflow: hidden;
-      background: rgba(6, 9, 15, 0.9);
+      background: rgba(6, 9, 15, 0.68);
       border: 1px solid rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(1px);
     }
 
     .lane-label {
@@ -154,14 +178,21 @@
     .beetle-lane {
       position: relative;
       height: var(--lane-height);
-      background: radial-gradient(circle at top, rgba(68, 214, 176, 0.18), transparent 55%),
-        repeating-linear-gradient(
-          120deg,
-          rgba(68, 214, 176, 0.08),
-          rgba(68, 214, 176, 0.08) 18px,
-          rgba(255, 255, 255, 0.02) 18px,
-          rgba(255, 255, 255, 0.02) 36px
-        );
+      background: linear-gradient(rgba(6, 9, 15, 0.6), rgba(6, 9, 15, 0.6));
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .beetle-lane::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: url("haikei/plant_eda1_horizontal.png");
+      background-repeat: no-repeat;
+      background-size: 100% 100%;
+      background-position: center;
+      opacity: 0.9;
+      z-index: 0;
     }
 
     .beetle {
@@ -183,6 +214,7 @@
       animation: scuttle linear var(--duration) forwards;
       pointer-events: none;
       white-space: normal;
+      z-index: 1;
     }
 
     .beetle img {
@@ -267,6 +299,10 @@
       button {
         width: 100%;
       }
+
+      #startButton {
+        width: auto;
+      }
     }
   </style>
 </head>
@@ -277,7 +313,6 @@
         <h1>カブトムシ打: プログラミング用語版</h1>
         <p>カブトムシが流れている間に用語をタイプしてスコアを伸ばそう！</p>
       </div>
-      <button id="startButton">ゲーム開始</button>
     </header>
 
     <section class="stats" aria-live="polite">
@@ -300,14 +335,17 @@
     </section>
 
     <div class="controls">
-      <label for="spawnDelay">カブトムシの滞在時間
-        <select id="spawnDelay">
-          <option value="3000">3秒</option>
-          <option value="5000">5秒</option>
-          <option value="8000">8秒</option>
-          <option value="10000">10秒</option>
-        </select>
-      </label>
+      <div class="control-row">
+        <label for="spawnDelay">カブトムシの滞在時間
+          <select id="spawnDelay">
+            <option value="3000">3秒</option>
+            <option value="5000">5秒</option>
+            <option value="8000">8秒</option>
+            <option value="10000">10秒</option>
+          </select>
+        </label>
+        <button id="startButton">ゲーム開始</button>
+      </div>
       <span class="controls-note">※経過時間か捕獲のどちらかで次が流れます</span>
     </div>
 
