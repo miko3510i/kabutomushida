@@ -382,6 +382,12 @@
 
     <div class="controls">
       <div class="control-row">
+        <label for="modeSelect">モード
+          <select id="modeSelect">
+            <option value="programming" selected>プログラミング用語</option>
+            <option value="unix">UNIXコマンド</option>
+          </select>
+        </label>
         <label for="spawnDelay">カブトムシの滞在時間
           <select id="spawnDelay">
             <option value="3000">3秒</option>
@@ -392,11 +398,12 @@
         </label>
         <button id="startButton">ゲーム開始</button>
       </div>
+      <span id="modeDescription" class="controls-note" aria-live="polite"></span>
       <span class="controls-note">※経過時間か捕獲のどちらかで次が流れます</span>
     </div>
 
     <div class="lane-wrapper">
-      <span class="lane-label">Forest</span>
+      <span class="lane-label">FOREST</span>
       <div id="lane" class="beetle-lane"></div>
     </div>
 
@@ -420,50 +427,212 @@
   </div>
 
   <script>
-    const programmingWords = [
-      "algorithm",
-      "binary",
-      "callback",
-      "commit",
-      "compiler",
-      "container",
-      "database",
-      "debug",
-      "declarative",
-      "dependency",
-      "endpoints",
-      "enum",
-      "framework",
-      "function",
-      "garbagecollector",
-      "hashmap",
-      "immutable",
-      "inheritance",
-      "interface",
-      "iterator",
-      "javascript",
-      "lambda",
-      "macro",
-      "middleware",
-      "namespace",
-      "optimization",
-      "polymorphism",
-      "protocol",
-      "recursion",
-      "refactor",
-      "repository",
-      "restapi",
-      "sandbox",
-      "serializer",
-      "singleton",
-      "stacktrace",
-      "syntax",
-      "thread",
-      "transaction",
-      "typescript",
-      "virtualmachine",
-      "websocket"
-    ];
+    const GENERIC_IDLE_WORD_TEXT = "準備中…";
+    const GENERIC_IDLE_MEANING_TEXT = "カブトムシが現れるとここに用語が表示されます。";
+    const GENERIC_MISSING_TEXT = "辞書にない用語です。";
+
+    const wordPools = {
+      programming: {
+        id: "programming",
+        label: "プログラミング用語版",
+        description: "英語のプログラミング用語をスペース無しで入力します。",
+        laneLabel: "FOREST",
+        idleMeaning: "プログラミング用語が表示されます。",
+        placeholder: "例: recursion / sandbox / websocket",
+        groundline: "0.42",
+        words: [
+          "algorithm",
+          "binary",
+          "callback",
+          "commit",
+          "compiler",
+          "container",
+          "database",
+          "debug",
+          "declarative",
+          "dependency",
+          "endpoints",
+          "enum",
+          "framework",
+          "function",
+          "garbagecollector",
+          "hashmap",
+          "immutable",
+          "inheritance",
+          "interface",
+          "iterator",
+          "javascript",
+          "lambda",
+          "macro",
+          "middleware",
+          "namespace",
+          "optimization",
+          "polymorphism",
+          "protocol",
+          "recursion",
+          "refactor",
+          "repository",
+          "restapi",
+          "sandbox",
+          "serializer",
+          "singleton",
+          "stacktrace",
+          "syntax",
+          "thread",
+          "transaction",
+          "typescript",
+          "virtualmachine",
+          "websocket"
+        ],
+        meanings: {
+          algorithm: "アルゴリズム: 問題を解くための処理手順や計算方法。",
+          binary: "バイナリ: 0と1の2進数でデータを表す形式。",
+          callback: "コールバック: 別の処理が完了したときに呼ばれる関数。",
+          commit: "コミット: 変更内容をバージョン管理に確定して記録する操作。",
+          compiler: "コンパイラ: ソースコードを機械語などに変換するプログラム。",
+          container: "コンテナ: 実行環境をまとめてパッケージ化して動かす仕組み。",
+          database: "データベース: データを整理して蓄え検索できるシステム。",
+          debug: "デバッグ: バグを見つけて修正する作業。",
+          declarative: "宣言的: 処理手順ではなく結果を記述するスタイル。",
+          dependency: "依存関係: あるモジュールが別のモジュールに頼るつながり。",
+          endpoints: "エンドポイント: APIと通信するときの接続先URL。",
+          enum: "列挙型: 有効な値を限定した型。",
+          framework: "フレームワーク: アプリ開発の土台となる共通機能の集合。",
+          function: "関数: 入力に応じて結果を返す独立した処理のかたまり。",
+          garbagecollector: "ガーベジコレクタ: 使わなくなったメモリを自動で解放する仕組み。",
+          hashmap: "ハッシュマップ: キーと値を高速に対応付けるデータ構造。",
+          immutable: "イミュータブル: 一度作ると値を変更できない性質。",
+          inheritance: "継承: あるクラスの性質を引き継いで新しいクラスを作る仕組み。",
+          interface: "インターフェース: 外部に公開する操作方法や契約。",
+          iterator: "イテレータ: 集合の要素を順番に取り出す仕組み。",
+          javascript: "JavaScript: ブラウザなどで動く代表的なプログラミング言語。",
+          lambda: "ラムダ: 名前を付けずに書ける無名関数。",
+          macro: "マクロ: 繰り返しの処理をまとめて自動化する仕組み。",
+          middleware: "ミドルウェア: OSとアプリの間で共通機能を提供するソフトウェア。",
+          namespace: "名前空間: 同じ名前の衝突を避けるための領域分け。",
+          optimization: "最適化: プログラムを速くしたり資源消費を抑えたりする改善。",
+          polymorphism: "ポリモーフィズム: 同じ操作で型ごとに異なる振る舞いをさせる仕組み。",
+          protocol: "プロトコル: 通信で守るべき手順やルール。",
+          recursion: "再帰: 自分自身を呼び出しながら問題を解く手法。",
+          refactor: "リファクタ: 挙動を変えずにコードの構造を整えること。",
+          repository: "リポジトリ: コードや履歴を保存するリモート・ローカルの保管場所。",
+          restapi: "REST API: HTTPの規約に従ってデータをやり取りするWeb API。",
+          sandbox: "サンドボックス: 本番に影響を与えない隔離された実行環境。",
+          serializer: "シリアライザ: データを保存や送信しやすい形式に変換する仕組み。",
+          singleton: "シングルトン: アプリ内でインスタンスが1つだけ存在する設計。",
+          stacktrace: "スタックトレース: エラーが起きるまでの関数呼び出し履歴。",
+          syntax: "構文: 言語で正しい文を書くためのきまり。",
+          thread: "スレッド: プログラム内で並行して動く処理の流れ。",
+          transaction: "トランザクション: 途中で失敗したら元に戻すことを前提にした一連の処理。",
+          typescript: "TypeScript: 型を付けて書けるJavaScriptの拡張言語。",
+          virtualmachine: "仮想マシン: ソフトウェアで再現した仮想的なコンピュータ。",
+          websocket: "WebSocket: サーバーとクライアントが双方向に通信し続ける仕組み。"
+        }
+      },
+      unix: {
+        id: "unix",
+        label: "UNIXコマンド版",
+        description: "UNIX/Linuxの代表的なコマンド名を入力します。",
+        laneLabel: "WORKSHOP",
+        idleMeaning: "UNIXコマンドが表示されます。",
+        placeholder: "例: ls / grep / systemctl",
+        groundline: "0.47",
+        words: [
+          "ls",
+          "cd",
+          "pwd",
+          "cat",
+          "less",
+          "head",
+          "tail",
+          "grep",
+          "find",
+          "awk",
+          "sed",
+          "sort",
+          "uniq",
+          "wc",
+          "touch",
+          "mkdir",
+          "rmdir",
+          "rm",
+          "cp",
+          "mv",
+          "chmod",
+          "chown",
+          "ln",
+          "ps",
+          "top",
+          "kill",
+          "xargs",
+          "tar",
+          "gzip",
+          "ssh",
+          "scp",
+          "curl",
+          "wget",
+          "ping",
+          "ifconfig",
+          "ip",
+          "uname",
+          "whoami",
+          "sudo",
+          "service",
+          "systemctl",
+          "journalctl",
+          "du",
+          "df",
+          "uptime"
+        ],
+        meanings: {
+          ls: "ls: ディレクトリ内のファイル一覧を表示。",
+          cd: "cd: カレントディレクトリを変更する。",
+          pwd: "pwd: 現在のディレクトリパスを表示。",
+          cat: "cat: ファイルの内容を標準出力へ順に表示。",
+          less: "less: ファイルをスクロールしながら閲覧。",
+          head: "head: ファイルの先頭行を表示。",
+          tail: "tail: ファイルの末尾行を表示。",
+          grep: "grep: 正規表現で行を検索して抽出。",
+          find: "find: 条件に合うファイルやディレクトリを探索。",
+          awk: "awk: テキストを列単位で処理するパターン処理言語。",
+          sed: "sed: ストリーム編集でテキストを変換。",
+          sort: "sort: 行を並べ替え。",
+          uniq: "uniq: 重複行を削除またはカウント。",
+          wc: "wc: 行数・単語数・バイト数を集計。",
+          touch: "touch: 空ファイル作成や更新時刻の変更。",
+          mkdir: "mkdir: 新しいディレクトリを作成。",
+          rmdir: "rmdir: 空のディレクトリを削除。",
+          rm: "rm: ファイルやディレクトリを削除。",
+          cp: "cp: ファイルやディレクトリをコピー。",
+          mv: "mv: ファイルを移動または改名。",
+          chmod: "chmod: ファイルやディレクトリの権限を変更。",
+          chown: "chown: 所有者やグループを変更。",
+          ln: "ln: ハードリンクやシンボリックリンクを作成。",
+          ps: "ps: 実行中のプロセス一覧を表示。",
+          top: "top: プロセスをリアルタイム監視。",
+          kill: "kill: プロセスにシグナルを送信。",
+          xargs: "xargs: 標準入力から引数を組み立ててコマンドを実行。",
+          tar: "tar: アーカイブの作成や展開を行う。",
+          gzip: "gzip: ファイルを圧縮／解凍。",
+          ssh: "ssh: リモートホストへ安全に接続。",
+          scp: "scp: SSH経由でファイルを転送。",
+          curl: "curl: URLからデータを取得・送信。",
+          wget: "wget: HTTP/FTPでファイルをダウンロード。",
+          ping: "ping: ネットワーク疎通を確認。",
+          ifconfig: "ifconfig: ネットワークインターフェースの設定を表示・変更。",
+          ip: "ip: iproute2の多機能ネットワーク管理コマンド。",
+          uname: "uname: システム情報やカーネル名を表示。",
+          whoami: "whoami: 現在のユーザー名を表示。",
+          sudo: "sudo: 管理者権限でコマンドを実行。",
+          service: "service: SysV系サービスを起動・停止など制御。",
+          systemctl: "systemctl: systemdサービスやユニットを管理。",
+          journalctl: "journalctl: systemdのジャーナルログを閲覧。",
+          du: "du: ディスク使用量を表示。",
+          df: "df: ファイルシステムの空き容量を表示。",
+          uptime: "uptime: 稼働時間と負荷平均を表示。"
+        }
+      }
+    };
 
     const beetleImages = [
       { src: "assets/kabutomushi.png", alt: "茶色のカブトムシ" },
@@ -475,52 +644,8 @@
       { src: "assets/kabutomushi_extra6.png", alt: "シルバーのカブトムシ" }
     ];
 
-    const wordMeanings = {
-      algorithm: "アルゴリズム: 問題を解くための処理手順や計算方法。",
-      binary: "バイナリ: 0と1の2進数でデータを表す形式。",
-      callback: "コールバック: 別の処理が完了したときに呼ばれる関数。",
-      commit: "コミット: 変更内容をバージョン管理に確定して記録する操作。",
-      compiler: "コンパイラ: ソースコードを機械語などに変換するプログラム。",
-      container: "コンテナ: 実行環境をまとめてパッケージ化して動かす仕組み。",
-      database: "データベース: データを整理して蓄え検索できるシステム。",
-      debug: "デバッグ: バグを見つけて修正する作業。",
-      declarative: "宣言的: 処理手順ではなく結果を記述するスタイル。",
-      dependency: "依存関係: あるモジュールが別のモジュールに頼るつながり。",
-      endpoints: "エンドポイント: APIと通信するときの接続先URL。",
-      enum: "列挙型: 有効な値を限定した型。",
-      framework: "フレームワーク: アプリ開発の土台となる共通機能の集合。",
-      function: "関数: 入力に応じて結果を返す独立した処理のかたまり。",
-      garbagecollector: "ガーベジコレクタ: 使わなくなったメモリを自動で解放する仕組み。",
-      hashmap: "ハッシュマップ: キーと値を高速に対応付けるデータ構造。",
-      immutable: "イミュータブル: 一度作ると値を変更できない性質。",
-      inheritance: "継承: あるクラスの性質を引き継いで新しいクラスを作る仕組み。",
-      interface: "インターフェース: 外部に公開する操作方法や契約。",
-      iterator: "イテレータ: 集合の要素を順番に取り出す仕組み。",
-      javascript: "JavaScript: ブラウザなどで動く代表的なプログラミング言語。",
-      lambda: "ラムダ: 名前を付けずに書ける無名関数。",
-      macro: "マクロ: 繰り返しの処理をまとめて自動化する仕組み。",
-      middleware: "ミドルウェア: OSとアプリの間で共通機能を提供するソフトウェア。",
-      namespace: "名前空間: 同じ名前の衝突を避けるための領域分け。",
-      optimization: "最適化: プログラムを速くしたり資源消費を抑えたりする改善。",
-      polymorphism: "ポリモーフィズム: 同じ操作で型ごとに異なる振る舞いをさせる仕組み。",
-      protocol: "プロトコル: 通信で守るべき手順やルール。",
-      recursion: "再帰: 自分自身を呼び出しながら問題を解く手法。",
-      refactor: "リファクタ: 挙動を変えずにコードの構造を整えること。",
-      repository: "リポジトリ: コードや履歴を保存するリモート・ローカルの保管場所。",
-      restapi: "REST API: HTTPの規約に従ってデータをやり取りするWeb API。",
-      sandbox: "サンドボックス: 本番に影響を与えない隔離された実行環境。",
-      serializer: "シリアライザ: データを保存や送信しやすい形式に変換する仕組み。",
-      singleton: "シングルトン: アプリ内でインスタンスが1つだけ存在する設計。",
-      stacktrace: "スタックトレース: エラーが起きるまでの関数呼び出し履歴。",
-      syntax: "構文: 言語で正しい文を書くためのきまり。",
-      thread: "スレッド: プログラム内で並行して動く処理の流れ。",
-      transaction: "トランザクション: 途中で失敗したら元に戻すことを前提にした一連の処理。",
-      typescript: "TypeScript: 型を付けて書けるJavaScriptの拡張言語。",
-      virtualmachine: "仮想マシン: ソフトウェアで再現した仮想的なコンピュータ。",
-      websocket: "WebSocket: サーバーとクライアントが双方向に通信し続ける仕組み。"
-    };
-
     const lane = document.getElementById("lane");
+    const laneLabel = document.querySelector(".lane-label");
     const startButton = document.getElementById("startButton");
     const scoreDisplay = document.getElementById("score");
     const timeDisplay = document.getElementById("time");
@@ -530,12 +655,13 @@
     const feedback = document.getElementById("feedback");
     const gameover = document.getElementById("gameover");
     const delaySelect = document.getElementById("spawnDelay");
+    const modeSelect = document.getElementById("modeSelect");
+    const modeDescription = document.getElementById("modeDescription");
     const wordDisplay = document.getElementById("wordDisplay");
     const currentWordText = document.getElementById("currentWord");
     const currentMeaningText = document.getElementById("currentMeaning");
-    const missingMeaningText = "辞書にない用語です。";
-    const idleWordText = "準備中…";
-    const idleMeaningText = "カブトムシが現れるとここに用語が表示されます。";
+
+    let currentPool = wordPools.programming;
 
     let timeLeft = 60;
     let score = 0;
@@ -550,10 +676,40 @@
     let beetleTimeoutId = null;
     let nextSpawnId = null;
     let spawnDelay = Number(delaySelect.value);
-    updateWordDisplay();
 
     const MAX_MISS = 5;
     const TRACKS = 1;
+
+    function applyModeToUI() {
+      if (laneLabel) {
+        laneLabel.textContent = currentPool.laneLabel;
+      }
+      if (modeDescription) {
+        modeDescription.textContent = `${currentPool.label} — ${currentPool.description}`;
+      }
+      document.documentElement.style.setProperty("--beetle-groundline", currentPool.groundline || "0.42");
+      typeInput.placeholder = currentPool.placeholder;
+    }
+
+    function setMode(modeId) {
+      const nextPool = wordPools[modeId] || wordPools.programming;
+      currentPool = nextPool;
+      if (modeSelect && modeSelect.value !== nextPool.id) {
+        modeSelect.value = nextPool.id;
+      }
+      playing = false;
+      resetGameState();
+    }
+
+    function lookupMeaning(word) {
+      if (!word) return GENERIC_MISSING_TEXT;
+      const normalized = String(word).toLowerCase();
+      return (
+        currentPool.meanings[normalized] ||
+        currentPool.meanings[word] ||
+        GENERIC_MISSING_TEXT
+      );
+    }
 
     function updateWordDisplay(word = "", meaning = "") {
       if (word && meaning) {
@@ -562,8 +718,8 @@
         currentMeaningText.textContent = meaning;
       } else {
         wordDisplay.dataset.state = "idle";
-        currentWordText.textContent = idleWordText;
-        currentMeaningText.textContent = idleMeaningText;
+        currentWordText.textContent = GENERIC_IDLE_WORD_TEXT;
+        currentMeaningText.textContent = currentPool.idleMeaning || GENERIC_IDLE_MEANING_TEXT;
       }
     }
 
@@ -594,9 +750,15 @@
       gameover.classList.remove("active");
       gameover.textContent = "";
       typeInput.value = "";
+      typeInput.disabled = true;
+      typeInput.placeholder = currentPool.placeholder;
       lane.innerHTML = "";
       activeBeetles.clear();
       beetleCounter = 0;
+      startButton.disabled = false;
+      modeSelect.disabled = false;
+      spawnDelay = Number(delaySelect.value);
+      applyModeToUI();
       updateWordDisplay();
     }
 
@@ -607,6 +769,7 @@
       startButton.disabled = true;
       typeInput.disabled = false;
       typeInput.focus();
+      modeSelect.disabled = true;
       spawnDelay = Number(delaySelect.value);
       scheduleNextSpawn(0);
       timerId = setInterval(() => {
@@ -622,6 +785,7 @@
       playing = false;
       startButton.disabled = false;
       typeInput.disabled = true;
+      modeSelect.disabled = false;
       clearInterval(timerId);
       timerId = null;
       clearTimeout(nextSpawnId);
@@ -642,8 +806,12 @@
     }
 
     function randomWord() {
-      const index = Math.floor(Math.random() * programmingWords.length);
-      return programmingWords[index];
+      const words = currentPool.words;
+      if (!words || words.length === 0) {
+        return "";
+      }
+      const index = Math.floor(Math.random() * words.length);
+      return words[index];
     }
 
     function randomBeetleAsset() {
@@ -714,6 +882,9 @@
       if (currentBeetleId) return;
 
       const word = randomWord();
+      if (!word) {
+        return;
+      }
       const beetleId = `beetle-${beetleCounter++}`;
       const beetle = document.createElement("div");
       beetle.className = "beetle";
@@ -721,7 +892,7 @@
       beetle.dataset.id = beetleId;
       beetle.setAttribute("aria-label", `${word} のカブトムシ`);
       beetle.style.setProperty("--duration", `${spawnDelay}ms`);
-      const meaning = wordMeanings[word] || missingMeaningText;
+      const meaning = lookupMeaning(word);
       const { src, alt } = randomBeetleAsset();
       beetle.innerHTML = `<img src="${src}" alt="${alt}">`;
       updateWordDisplay(word, meaning);
@@ -807,6 +978,10 @@
       updateWordDisplay();
     }
 
+    modeSelect.addEventListener("change", () => {
+      setMode(modeSelect.value);
+    });
+
     delaySelect.addEventListener("change", () => {
       spawnDelay = Number(delaySelect.value);
       if (playing && currentBeetleId && activeBeetles.has(currentBeetleId)) {
@@ -820,6 +995,7 @@
 
     startButton.addEventListener("click", startGame);
     typeInput.addEventListener("keydown", handleTyping);
+    resetGameState();
   </script>
 </body>
 </html>
