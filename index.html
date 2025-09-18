@@ -209,11 +209,11 @@
       position: absolute;
       left: 0;
       display: inline-flex;
-      flex-direction: column;
       align-items: center;
-      gap: 6px;
-      min-width: max(200px, calc(var(--beetle-size) * 2.4));
-      padding: 14px 24px;
+      justify-content: center;
+      gap: 8px;
+      min-width: max(140px, calc(var(--beetle-size) * 1.6));
+      padding: 12px 18px;
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.92);
       box-shadow: 0 16px 32px rgba(0, 0, 0, 0.38);
@@ -223,7 +223,7 @@
       text-align: center;
       animation: scuttle linear var(--duration) forwards;
       pointer-events: none;
-      white-space: normal;
+      white-space: nowrap;
       z-index: 1;
     }
 
@@ -232,18 +232,6 @@
       height: auto;
       display: block;
       filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.25));
-    }
-
-    .beetle .word-label {
-      font-size: clamp(1rem, 2.6vw, 1.25rem);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    .beetle .word-meaning {
-      font-size: clamp(0.7rem, 2vw, 0.85rem);
-      line-height: 1.35;
-      opacity: 0.85;
     }
 
     @keyframes scuttle {
@@ -258,7 +246,40 @@
     .input-area {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
+    }
+
+    .word-display {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 14px 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.78);
+      color: #1d4b2a;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 16px 32px rgba(60, 160, 90, 0.3);
+      min-height: 84px;
+      transition: background 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+    }
+
+    .word-display[data-state="idle"] {
+      background: rgba(245, 255, 245, 0.62);
+      color: #2d6a3c;
+      box-shadow: 0 10px 24px rgba(50, 140, 75, 0.18);
+    }
+
+    .word-display .word-label {
+      font-size: clamp(1.2rem, 3vw, 1.5rem);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .word-display .word-meaning {
+      font-size: clamp(0.85rem, 2.2vw, 1rem);
+      line-height: 1.4;
+      color: rgba(29, 75, 42, 0.82);
     }
 
     .feedback {
@@ -367,6 +388,16 @@
 
     <div class="input-area">
       <label for="typeInput">表示された用語をスペース無しで正確にタイプし、Enterで確定します。</label>
+      <div
+        id="wordDisplay"
+        class="word-display"
+        aria-live="polite"
+        aria-atomic="true"
+        data-state="idle"
+      >
+        <span id="currentWord" class="word-label">準備中…</span>
+        <span id="currentMeaning" class="word-meaning">カブトムシが現れるとここに用語が表示されます。</span>
+      </div>
       <input id="typeInput" type="text" inputmode="text" autocomplete="off" disabled />
       <div id="feedback" class="feedback" aria-live="polite"></div>
     </div>
@@ -485,7 +516,12 @@
     const feedback = document.getElementById("feedback");
     const gameover = document.getElementById("gameover");
     const delaySelect = document.getElementById("spawnDelay");
+    const wordDisplay = document.getElementById("wordDisplay");
+    const currentWordText = document.getElementById("currentWord");
+    const currentMeaningText = document.getElementById("currentMeaning");
     const missingMeaningText = "辞書にない用語です。";
+    const idleWordText = "準備中…";
+    const idleMeaningText = "カブトムシが現れるとここに用語が表示されます。";
 
     let timeLeft = 60;
     let score = 0;
@@ -500,9 +536,22 @@
     let beetleTimeoutId = null;
     let nextSpawnId = null;
     let spawnDelay = Number(delaySelect.value);
+    updateWordDisplay();
 
     const MAX_MISS = 5;
     const TRACKS = 1;
+
+    function updateWordDisplay(word = "", meaning = "") {
+      if (word && meaning) {
+        wordDisplay.dataset.state = "active";
+        currentWordText.textContent = word;
+        currentMeaningText.textContent = meaning;
+      } else {
+        wordDisplay.dataset.state = "idle";
+        currentWordText.textContent = idleWordText;
+        currentMeaningText.textContent = idleMeaningText;
+      }
+    }
 
     function resetGameState() {
       if (timerId) {
@@ -534,6 +583,7 @@
       lane.innerHTML = "";
       activeBeetles.clear();
       beetleCounter = 0;
+      updateWordDisplay();
     }
 
     function startGame() {
@@ -574,6 +624,7 @@
       feedback.textContent = "";
       gameover.textContent = `${message} 最終スコア: ${score}`;
       gameover.classList.add("active");
+      updateWordDisplay();
     }
 
     function randomWord() {
@@ -644,7 +695,8 @@
       beetle.style.setProperty("--duration", `${spawnDelay}ms`);
       const meaning = wordMeanings[word] || missingMeaningText;
       const { src, alt } = randomBeetleAsset();
-      beetle.innerHTML = `<img src="${src}" alt="${alt}"><span class="word-label">${word}</span><span class="word-meaning">${meaning}</span>`;
+      beetle.innerHTML = `<img src="${src}" alt="${alt}">`;
+      updateWordDisplay(word, meaning);
 
       const trackIndex = nextTrack;
       nextTrack = (nextTrack + 1) % TRACKS;
@@ -685,6 +737,7 @@
       misses += 1;
       missesDisplay.textContent = `${misses} / ${MAX_MISS}`;
       feedback.textContent = "飛んでいってしまった…！";
+      updateWordDisplay();
       if (misses >= MAX_MISS) {
         endGame("虫かごが空っぽになってしまった…");
       }
@@ -723,6 +776,7 @@
       score += total;
       scoreDisplay.textContent = score;
       feedback.textContent = `「${beetleEntry.word}」捕まえた！ +${total} pt`;
+      updateWordDisplay();
     }
 
     delaySelect.addEventListener("change", () => {
