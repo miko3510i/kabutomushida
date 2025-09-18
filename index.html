@@ -16,6 +16,7 @@
       --bg: #0f2218;
       --text: #f6fff2;
       --beetle-run-buffer: 96px;
+      --beetle-groundline: 0.42;
     }
 
     body {
@@ -217,7 +218,6 @@
       pointer-events: none;
       z-index: 1;
       left: calc(100% + var(--beetle-run-buffer));
-      top: 10%;
       filter: drop-shadow(0 8px 18px rgba(26, 74, 41, 0.45));
     }
 
@@ -334,6 +334,7 @@
       :root {
         --lane-height: 200px;
         --beetle-size: 56px;
+        --beetle-groundline: 0.45;
       }
 
       .game {
@@ -652,8 +653,22 @@
 
     function trackOffset(trackIndex, beetleElement) {
       const laneHeight = lane.clientHeight;
+      const beetleHeight =
+        beetleElement.getBoundingClientRect().height ||
+        parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--beetle-size")) ||
+        72;
+
+      if (TRACKS === 1) {
+        const rootStyle = getComputedStyle(document.documentElement);
+        const rawGroundline = rootStyle.getPropertyValue("--beetle-groundline").trim();
+        const groundRatio = rawGroundline ? Number.parseFloat(rawGroundline) : 0.46;
+        const safeGroundRatio = Number.isFinite(groundRatio) ? groundRatio : 0.46;
+        const surfaceY = laneHeight * safeGroundRatio;
+        const footAllowance = beetleHeight * 0.18;
+        return surfaceY - beetleHeight + footAllowance;
+      }
+
       const slotHeight = laneHeight / TRACKS;
-      const beetleHeight = beetleElement.getBoundingClientRect().height || parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--beetle-size")) || 72;
       return slotHeight * (trackIndex + 0.5) - beetleHeight / 2;
     }
 
