@@ -16,7 +16,7 @@
       --bg: #0f2218;
       --text: #f6fff2;
       --beetle-run-buffer: 96px;
-      --beetle-groundline: 0.36;
+      --beetle-track-center: 0.465;
     }
 
     body {
@@ -199,11 +199,11 @@
       content: "";
       position: absolute;
       inset: 0;
-      background-image: url("haikei/plant_eda1_horizontal.png");
+      background-image: url("haikei/plant_eda1_lane.png");
       background-repeat: no-repeat;
       background-size: 100% 100%;
       background-position: center;
-      opacity: 0.9;
+      opacity: 0.94;
       z-index: 0;
     }
 
@@ -334,7 +334,7 @@
       :root {
         --lane-height: 200px;
         --beetle-size: 56px;
-        --beetle-groundline: 0.45;
+        --beetle-track-center: 0.48;
       }
 
       .game {
@@ -439,7 +439,7 @@
         laneLabel: "FOREST",
         idleMeaning: "プログラミング用語が表示されます。",
         placeholder: "例: recursion / sandbox / websocket",
-        groundline: "0.36",
+        trackCenter: "0.465",
         words: [
           "algorithm",
           "binary",
@@ -536,7 +536,7 @@
         laneLabel: "WORKSHOP",
         idleMeaning: "UNIXコマンドが表示されます。",
         placeholder: "例: ls / grep / systemctl",
-        groundline: "0.36",
+        trackCenter: "0.465",
         words: [
           "ls",
           "cd",
@@ -687,7 +687,7 @@
       if (modeDescription) {
         modeDescription.textContent = `${currentPool.label} — ${currentPool.description}`;
       }
-      document.documentElement.style.setProperty("--beetle-groundline", currentPool.groundline || "0.42");
+      document.documentElement.style.setProperty("--beetle-track-center", currentPool.trackCenter || "0.465");
       typeInput.placeholder = currentPool.placeholder;
     }
 
@@ -828,12 +828,11 @@
 
       if (TRACKS === 1) {
         const rootStyle = getComputedStyle(document.documentElement);
-        const rawGroundline = rootStyle.getPropertyValue("--beetle-groundline").trim();
-        const groundRatio = rawGroundline ? Number.parseFloat(rawGroundline) : 0.46;
-        const safeGroundRatio = Number.isFinite(groundRatio) ? groundRatio : 0.46;
-        const surfaceY = laneHeight * safeGroundRatio;
-        const footAllowance = beetleHeight * 0.18;
-        return surfaceY - beetleHeight + footAllowance;
+        const rawCenter = rootStyle.getPropertyValue("--beetle-track-center").trim();
+        const parsedCenter = rawCenter ? Number.parseFloat(rawCenter) : 0.465;
+        const safeCenter = Number.isFinite(parsedCenter) ? Math.min(Math.max(parsedCenter, 0), 1) : 0.465;
+        const centerY = laneHeight * safeCenter;
+        return centerY - beetleHeight / 2;
       }
 
       const slotHeight = laneHeight / TRACKS;
